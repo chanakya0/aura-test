@@ -1,0 +1,123 @@
+dedup_ruleset:
+  name: deterministic_asset_entity_resolution
+  version: 1.0.0
+  goals:
+    - deterministic: same inputs => same outputs
+    - explainable: merge decisions produce human- and machine-readable rationale
+    - stable_ids: canonical asset_id remains stable over time when primary identity is stable
+  constraints:
+    - do_not_merge_across_tenants: true
+    - do_not_merge_across_zones: true
+
+identity_key_classes:
+  - id: mac_address
+    description: >
+      Layer-2 MAC address observed on an interface; highest confidence within a
+      tenant+zone for physical/virtual NIC identity.
+    confidence: 1.0
+    match:
+      any_of:
+        - field: subject.addresses[*].mac
+          normalize: [lowercase, trim]
+    asset_id_strategy:
+      type: stable_hash
+      inputs:
+        - tenant_ref
+        - zone_ref
+        - "mac:{mac}"
+
+  - id: ip_address
+    description: >
+      IP address identity. Medium confidence; IPs can move/reassign.
+    confidence: 0.7
+    match:
+      any_of:
+        - field: subject.addresses[*].ip
+          normalize: [trim]
+    asset_id_strategy:
+      type: stable_hash
+      inputs:
+        - tenant_ref
+        - zone_ref
+        - "ip:{ip}"
+
+  - id: hostname
+    description: >
+      Hostname identity. Lower confidence; can be duplicated or reused.
+    confidence: 0.5
+    match:
+      any_of:
+        - field: subject.names[*]
+          normalize: [lowercase, trim]
+    asset_id_strategy:
+      type: stable_hash
+      inputs:
+        - tenant_ref
+        - zone_ref
+        - "host:{hostname}"
+
+merge_policy:
+  primary_key_precedence:
+    - mac_address
+    - ip_address
+    - hostname
+
+  candidate_generation:
+    description: >
+      Candidate assets are those sharing any identity key class value with the
+      observation, within the same tenant_ref+zone_ref.
+    limits:
+      max_candidates: 50
+
+  conflict_handling:
+    description: >
+      When an observation matches multiple assets via different key classes,
+      choose the asset with the highest-precedence matching key class. If multiple
+      assets match within the same key class, treat as collision and quarantine.
+    on_collision:
+      action: quarantine
+      error_code: DEDUP_COLLISION
+
+  field_merge_rules:
+    identity.names:
+      rule: union_with_timestamps
+      dedup_key: [kind, value]
+      timestamp_behavior: keep_min_first_seen_and_max_last_seen
+    identity.addresses:
+      rule: union_with_timestamps
+      dedup_key: [ip, mac]
+      timestamp_behavior: keep_min_first_seen_and_max_last_seen
+    services:
+      rule: union_with_timestamps
+      dedup_key: [protocol, port, service_name, product, version]
+      timestamp_behavior: keep_min_first_seen_and_max_last_seen
+    labels:
+      rule: last_write_wins_by_source_priority
+      source_priority:
+        - cmdb
+        - cloud_api
+        - edr
+        - network_scanner
+        - manual
+    attributes.os:
+      rule: highest_confidence_wins
+    active:
+      rule: derived
+      derived_from:
+        - last_seen_within_days: 30
+
+explainability:
+  required_explanations:
+    - chosen_primary_key_class
+    - matched_values
+    - merge_rule_applied_per_field_group
+    - collision_handling_if_any
+
+normalization:
+  string_normalization:
+    lowercase_fields:
+      - subject.names[*]
+      - subject.addresses[*].mac
+  canonicalization:
+    remove_empty_strings: true
+    trim_whitespace: true

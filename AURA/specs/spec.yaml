@@ -1,0 +1,177 @@
+spec_set:
+  name: vendor_neutral_asset_discovery_elt
+  version: 1.0.0
+  single_source_of_truth: true
+  principles:
+    - immutable_raw_events_are_replayable
+    - normalized_assets_are_vendor_neutral
+    - deterministic_entity_resolution_is_default
+    - schema_versioning_is_mandatory
+    - stateless_compute_only
+    - agentic_observability_by_contract
+
+scope:
+  problem_statement: >
+    Periodically discover network-reachable assets (Nmap-style), normalize and
+    de-duplicate observations into canonical asset entities, persist JSON-native
+    schemas in managed services, maintain historical change tracking, and enable
+    rich reporting.
+  explicit_non_goals:
+    - exploit_scanning_or_intrusion
+    - credentialed_scanning
+    - agent_autonomy_over_network_scope_without_policy
+    - permanent_state_on_compute_nodes
+
+functional_requirements:
+  - id: F1
+    title: Discovery scheduling
+    shall: >
+      Support periodic runs over configured targets (CIDR blocks, IP ranges,
+      hostnames) and ad-hoc runs, producing a unique run_id per invocation.
+    acceptance:
+      - run_id exists and is unique
+      - run has declared target_set and scan_profile
+      - run is shardable with explicit shard_count and shard_ids
+
+  - id: F2
+    title: Nmap-style probing output
+    shall: >
+      Produce host reachability, resolved names, discovered addresses, open ports,
+      protocol/service fingerprints (when available), and scan metadata including
+      tool name/version, flags, and errors.
+    acceptance:
+      - at least one observation per discovered host
+      - observation includes discovery metadata and timestamps
+
+  - id: F3
+    title: Raw event capture
+    shall: >
+      Persist an immutable raw observation payload per scanner output record and
+      retain a pointer/URI to the raw artifact for replay.
+    acceptance:
+      - raw payload is immutable and addressable by observation_id
+      - replay from raw yields identical normalized observation (given same schema version)
+
+  - id: F4
+    title: Normalization to canonical schemas
+    shall: >
+      Transform raw observations into canonical Observation and Asset schemas.
+    acceptance:
+      - normalized records validate against JSON Schemas
+      - schema_version is present in each normalized record
+
+  - id: F5
+    title: De-duplication and entity resolution
+    shall: >
+      Merge multiple observations into a single canonical asset using deterministic
+      rules with documented precedence and stable asset_id generation.
+    acceptance:
+      - given same inputs, merge output is identical (deterministic)
+      - merge produces an explainable decision trail
+
+  - id: F6
+    title: Historical change tracking
+    shall: >
+      Maintain an auditable history of asset states over time and produce computed
+      change events suitable for reporting.
+    acceptance:
+      - asset history supports as-of queries
+      - change events identify what changed, when, and why (evidence)
+
+  - id: F7
+    title: Data quality and quarantine
+    shall: >
+      Validate normalized artifacts; invalid items are quarantined with reasons and
+      traceable pointers to source raw payloads.
+    acceptance:
+      - quarantined records include validation errors
+      - quarantine does not block processing of valid records
+
+  - id: F8
+    title: Reporting enablement
+    shall: >
+      Provide stable query surfaces for dashboards: inventory totals, exposure surface,
+      changes over time, scan coverage, and errors.
+    acceptance:
+      - reporting surfaces are versioned and documented
+
+  - id: F9
+    title: Segmentation / tenancy
+    shall: >
+      Support optional segmentation by tenant and zone (environment, network zone,
+      project), enforced by data fields and partitioning-friendly keys.
+    acceptance:
+      - every record has a tenant_ref and zone_ref (may be default)
+
+  - id: F10
+    title: Extensible source adapters
+    shall: >
+      Support multiple discovery sources via adapters that map raw payloads to the
+      canonical Observation schema without changing downstream consumers beyond
+      schema evolution.
+    acceptance:
+      - source is declared in observation.source
+      - adapter emits canonical Observation + evidence pointers
+
+  - id: F11
+    title: Agentic-AI friendly contracts
+    shall: >
+      Emit machine-readable run manifests, step events, metrics, and typed errors
+      per the pipeline contract; all artifacts are self-describing and discoverable.
+    acceptance:
+      - every run produces a run_manifest conforming to schema
+      - every stage emits required events/metrics/errors
+
+nonfunctional_requirements:
+  - id: N1
+    title: Stateless compute
+    requirement: All compute components must be stateless; durable state only in managed services.
+
+  - id: N2
+    title: Lightweight execution
+    requirement: Runs as ephemeral jobs/services (Cloud Run Jobs/Cloud Functions/Cloud Run) with bounded execution per shard.
+
+  - id: N3
+    title: Security
+    requirement: Least-privilege IAM, secrets management, and controlled egress; all access is auditable.
+
+  - id: N4
+    title: Reliability and idempotency
+    requirement: At-least-once safe writes; ingestion and transformation are idempotent for a given run_id + shard_id + observation_id.
+
+  - id: N5
+    title: Performance and scalability
+    requirement: Parallelize by shards; support high target volumes via fan-out and batch processing.
+
+  - id: N6
+    title: Cost efficiency
+    requirement: Prefer batch loads and partitioning/clustering-friendly schemas; minimize per-record write overhead.
+
+  - id: N7
+    title: Observability
+    requirement: Structured logs and required metrics/events per contract; all records trace back to source evidence.
+
+  - id: N8
+    title: Schema governance
+    requirement: Versioned schemas, backward-compatible evolution, and stable reporting surfaces.
+
+  - id: N9
+    title: Vendor neutrality
+    requirement: Canonical schemas and logic remain scanner-agnostic; scanner specifics are confined to adapters and evidence.
+
+interfaces:
+  ids:
+    run_id: ULID_or_UUIDv7
+    shard_id: string
+    observation_id: ULID_or_UUIDv7
+    asset_id: stable_deterministic_id
+  timestamps:
+    format: RFC3339
+    canonical_field_names:
+      observed_at: time the network observation was made
+      ingested_at: time stored in managed service
+  required_refs:
+    tenant_ref:
+      description: tenant/org identifier for segmentation (use "default" if single-tenant)
+    zone_ref:
+      description: environment/network-zone identifier (use "default" if not used)

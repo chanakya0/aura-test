@@ -1,0 +1,12 @@
+{
+  "implementation_name": "aura_minimal_elt",
+  "implementation_version": "1.0.0",
+  "frozen": true,
+  "frozen_at": "2026-04-23T00:00:00Z",
+  "spec_set_name": "vendor_neutral_asset_discovery_elt",
+  "spec_set_version": "1.0.0",
+  "notes": [
+    "Implementation is frozen as v1.0.0 spec-compliant.",
+    "Asset deactivation semantics and contract-event persistence are explicitly deferred to spec revision v1.1.0."
+  ]
+}

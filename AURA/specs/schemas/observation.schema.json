@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spec:vendor-neutral-asset-discovery-elt:observation:1.0.0",
+  "title": "Canonical Raw Observation (Normalized Wrapper)",
+  "description": "A normalized wrapper around a single scanner observation, preserving evidence pointers to immutable raw payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "run_id",
+    "tenant_ref",
+    "zone_ref",
+    "source",
+    "observed_at",
+    "subject",
+    "evidence"
+  ],
+  "$defs": {
+    "ip": {
+      "type": "string",
+      "pattern": "^(?:\\d{1,3}\\.){3}\\d{1,3}$|^[0-9a-fA-F:]+$",
+      "description": "IPv4 or IPv6 textual representation; not strictly validated beyond basic pattern."
+    },
+    "mac": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$"
+    },
+    "typed_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "severity"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string", "enum": ["debug", "info", "warning", "error", "critical"] },
+        "details": { "type": "object", "additionalProperties": true }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "observation_id": { "type": "string", "minLength": 8 },
+    "run_id": { "type": "string", "minLength": 8 },
+    "tenant_ref": { "type": "string", "minLength": 1 },
+    "zone_ref": { "type": "string", "minLength": 1 },
+    "shard_id": { "type": "string" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "ingested_at": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["network_scanner", "cloud_api", "cmdb", "edr", "manual"]
+        },
+        "name": { "type": "string", "minLength": 1, "description": "e.g., nmap" },
+        "version": { "type": "string" },
+        "adapter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addresses"],
+      "properties": {
+        "names": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "addresses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ip"],
+            "properties": {
+              "ip": { "$ref": "#/$defs/ip" },
+              "mac": { "$ref": "#/$defs/mac" },
+              "interface_name": { "type": "string" },
+              "network": { "type": "string", "description": "CIDR or logical network label." }
+            }
+          }
+        }
+      }
+    },
+    "reachability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reachable": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "rtt_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["protocol", "port", "state"],
+        "properties": {
+          "protocol": { "type": "string", "enum": ["tcp", "udp", "sctp", "icmp", "other"] },
+          "port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+          "state": { "type": "string", "enum": ["open", "closed", "filtered", "open|filtered", "unknown"] },
+          "service_name": { "type": "string" },
+          "product": { "type": "string" },
+          "version": { "type": "string" },
+          "cpe": { "type": "array", "items": { "type": "string" } },
+          "banner": { "type": "string" },
+          "tls": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "TLS hints (issuer, SANs, expiry) if collected; structure is adapter-defined."
+          }
+        }
+      }
+    },
+    "os_guess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "accuracy": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Free-form key/value tags from orchestration or adapter."
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_uri"],
+      "properties": {
+        "raw_uri": { "type": "string", "minLength": 1, "description": "URI to immutable raw payload (e.g., gs://...)." },
+        "raw_content_type": { "type": "string" },
+        "raw_hash": { "type": "string", "description": "Hash of raw bytes for integrity." },
+        "scanner_output_format": { "type": "string", "enum": ["json", "xml", "text", "unknown"] }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/typed_error" }
+    }
+  }
+}

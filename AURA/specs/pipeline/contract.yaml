@@ -1,0 +1,185 @@
+pipeline_contract:
+  name: asset_discovery_elt_contract
+  version: 1.0.0
+  purpose: >
+    Defines machine-readable contracts for pipeline stages, emitted events, metrics,
+    and error taxonomy to ensure the system is explicitly agentic-AI friendly.
+
+conventions:
+  ids:
+    run_id: ULID_or_UUIDv7
+    observation_id: ULID_or_UUIDv7
+    asset_id: stable_deterministic_id
+  timestamps:
+    format: RFC3339
+  logging:
+    format: json_lines
+    required_fields:
+      - timestamp
+      - severity
+      - run_id
+      - stage
+      - event_type
+      - message
+
+stages:
+  - id: orchestrate
+    description: Create run manifest, shard targets, and enqueue shard work.
+    inputs:
+      - target_set
+      - scan_profile
+    outputs:
+      - run_manifest
+      - shard_work_items
+
+  - id: scan_shard
+    description: Execute Nmap-style scanning for a shard and persist raw artifacts.
+    inputs:
+      - run_manifest
+      - shard_work_item
+    outputs:
+      - raw_observation_artifacts
+      - raw_observation_pointers
+
+  - id: normalize_validate
+    description: Parse raw artifacts and emit canonical Observation records; quarantine invalid.
+    inputs:
+      - raw_observation_pointers
+    outputs:
+      - canonical_observations
+      - quarantine_records
+
+  - id: entity_resolve_merge
+    description: Deterministically map observations to asset_id and merge into canonical assets.
+    inputs:
+      - canonical_observations
+      - dedup_ruleset
+    outputs:
+      - assets_current
+      - assets_history
+
+  - id: compute_changes
+    description: Compute Asset Change Events between consecutive history versions.
+    inputs:
+      - assets_history
+    outputs:
+      - asset_change_events
+
+events:
+  envelope:
+    required_fields:
+      - schema_version
+      - event_id
+      - event_type
+      - emitted_at
+      - run_id
+      - tenant_ref
+      - zone_ref
+      - stage
+      - payload
+    schema_version: "1.0.0"
+
+  types:
+    - event_type: run.started
+      stage: orchestrate
+      payload_shape:
+        run_manifest_ref: { type: string, description: "URI or pointer to run manifest" }
+
+    - event_type: run.completed
+      stage: orchestrate
+      payload_shape:
+        status: { type: string, enum: [succeeded, failed, partial] }
+        summary: { type: object, additionalProperties: true }
+
+    - event_type: shard.started
+      stage: scan_shard
+      payload_shape:
+        shard_id: { type: string }
+        target_count: { type: integer, minimum: 1 }
+
+    - event_type: shard.completed
+      stage: scan_shard
+      payload_shape:
+        shard_id: { type: string }
+        status: { type: string, enum: [succeeded, failed, partial] }
+        raw_artifact_uris: { type: array, items: { type: string } }
+
+    - event_type: normalize.completed
+      stage: normalize_validate
+      payload_shape:
+        parsed_count: { type: integer, minimum: 0 }
+        invalid_count: { type: integer, minimum: 0 }
+
+    - event_type: dedup.completed
+      stage: entity_resolve_merge
+      payload_shape:
+        assets_upserted: { type: integer, minimum: 0 }
+        collisions: { type: integer, minimum: 0 }
+
+    - event_type: changes.completed
+      stage: compute_changes
+      payload_shape:
+        change_events_written: { type: integer, minimum: 0 }
+
+metrics:
+  required:
+    - name: run_duration_seconds
+      type: gauge
+      labels: [run_id, stage, tenant_ref, zone_ref]
+    - name: shard_duration_seconds
+      type: gauge
+      labels: [run_id, shard_id, stage, tenant_ref, zone_ref]
+    - name: observations_ingested_total
+      type: counter
+      labels: [run_id, source_name, tenant_ref, zone_ref]
+    - name: observations_invalid_total
+      type: counter
+      labels: [run_id, reason_code, tenant_ref, zone_ref]
+    - name: assets_current_total
+      type: gauge
+      labels: [tenant_ref, zone_ref]
+    - name: asset_changes_total
+      type: counter
+      labels: [run_id, change_type, tenant_ref, zone_ref]
+    - name: dedup_collisions_total
+      type: counter
+      labels: [run_id, tenant_ref, zone_ref]
+
+errors:
+  taxonomy:
+    - code: TARGET_PARSE_ERROR
+      severity: error
+      retryable: false
+    - code: SCAN_TIMEOUT
+      severity: warning
+      retryable: true
+    - code: SCAN_EXEC_ERROR
+      severity: error
+      retryable: true
+    - code: RAW_ARTIFACT_WRITE_FAILED
+      severity: error
+      retryable: true
+    - code: OBSERVATION_SCHEMA_VALIDATION_FAILED
+      severity: error
+      retryable: false
+    - code: ASSET_SCHEMA_VALIDATION_FAILED
+      severity: error
+      retryable: false
+    - code: DEDUP_COLLISION
+      severity: error
+      retryable: false
+    - code: CHANGE_COMPUTE_FAILED
+      severity: error
+      retryable: true
+
+agentic_ai_requirements:
+  machine_readable_discoverability:
+    - provide_catalog: specs/catalog.json
+    - provide_schema_ids: true
+    - provide_contract_version: true
+  step_level_introspection:
+    - every_stage_emits_started_and_completed_events: true
+    - every_error_is_typed_and_has_retryable_flag: true
+  replay_support:
+    - raw_artifacts_are_immutable: true
+    - canonicalization_is_versioned: true

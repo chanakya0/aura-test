@@ -1,0 +1,61 @@
+{
+  "spec_set_name": "vendor_neutral_asset_discovery_elt",
+  "spec_set_version": "1.0.0",
+  "created_at": "2026-04-23",
+  "single_source_of_truth": true,
+  "compatibility": {
+    "json_schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+    "time_format": "RFC3339",
+    "id_format": "ULID_or_UUIDv7"
+  },
+  "artifacts": [
+    {
+      "kind": "specification",
+      "id": "spec",
+      "path": "specs/spec.yaml",
+      "content_type": "application/yaml"
+    },
+    {
+      "kind": "json_schema",
+      "id": "run_manifest",
+      "path": "specs/schemas/run-manifest.schema.json",
+      "content_type": "application/schema+json"
+    },
+    {
+      "kind": "json_schema",
+      "id": "raw_observation",
+      "path": "specs/schemas/observation.schema.json",
+      "content_type": "application/schema+json"
+    },
+    {
+      "kind": "json_schema",
+      "id": "asset",
+      "path": "specs/schemas/asset.schema.json",
+      "content_type": "application/schema+json"
+    },
+    {
+      "kind": "json_schema",
+      "id": "asset_change",
+      "path": "specs/schemas/asset-change.schema.json",
+      "content_type": "application/schema+json"
+    },
+    {
+      "kind": "json_schema",
+      "id": "pipeline_event",
+      "path": "specs/schemas/pipeline-event.schema.json",
+      "content_type": "application/schema+json"
+    },
+    {
+      "kind": "deduplication_rules",
+      "id": "dedup_rules",
+      "path": "specs/dedup/rules.yaml",
+      "content_type": "application/yaml"
+    },
+    {
+      "kind": "pipeline_contract",
+      "id": "pipeline_contract",
+      "path": "specs/pipeline/contract.yaml",
+      "content_type": "application/yaml"
+    }
+  ]
+}
