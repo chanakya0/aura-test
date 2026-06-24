@@ -1,0 +1,244 @@
+Validate.sh
++ source bin/init.sh
+
+++ set -e
+
+++ [[ -z '' ]]
+
+++ WORKSPACE=/harness-qq032OiMR9SAGhM1dXMY1A
+
+++ export TMPDIR=/harness-qq032OiMR9SAGhM1dXMY1A/tmpdir
+
+++ TMPDIR=/harness-qq032OiMR9SAGhM1dXMY1A/tmpdir
+
+++ export PACKER_CACHE_DIR=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache
+
+++ PACKER_CACHE_DIR=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache
+
+++ export PACKER_PLUGIN_PATH=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/plugins
+
+++ PACKER_PLUGIN_PATH=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/plugins
+
+++ export VIRTUAL_ENV=/opt/venv
+
+++ VIRTUAL_ENV=/opt/venv
+
+++ export SERIAL_DIR=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/serial
+
+++ SERIAL_DIR=/harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/serial
+
+++ git config --global --add safe.directory /harness-qq032OiMR9SAGhM1dXMY1A
+
++++ git rev-parse HEAD
+
+++ GIT_COMMIT=2bf09e2add00a097edc4c69c424d129f92549d6a
+
+++ export GIT_COMMIT
+
+++ export GIT_BRANCH
+
+++ mkdir -p /harness-qq032OiMR9SAGhM1dXMY1A/tmpdir
+
+++ packer init gcp-builds.pkr.hcl
+
+0 0
+
+++ [[ ! -f cfg/.ssh/id_rsa ]]
+
+++ ssh-keygen -b 2048 -t rsa -f cfg/.ssh/id_rsa -q -N ''
+
++ source bin/functions.sh
+
++ test -d /opt/venv
+
++ source /opt/venv/bin/activate
+
+++ deactivate nondestructive
+
+++ '[' -n '' ']'
+
+++ '[' -n '' ']'
+
+++ '[' -n /usr/bin/bash -o -n '' ']'
+
+++ hash -r
+
+++ '[' -n '' ']'
+
+++ unset VIRTUAL_ENV
+
+++ '[' '!' nondestructive = nondestructive ']'
+
+++ VIRTUAL_ENV=/opt/venv
+
+++ export VIRTUAL_ENV
+
+++ _OLD_VIRTUAL_PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+
+++ PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
+
+++ export PATH
+
+++ '[' -n '' ']'
+
+++ '[' -z '' ']'
+
+++ _OLD_VIRTUAL_PS1=
+
+++ '[' 'x(venv) ' '!=' x ']'
+
+++ PS1='(venv) '
+
+++ export PS1
+
+++ '[' -n /usr/bin/bash -o -n '' ']'
+
+++ hash -r
+
++ rm -rf post prep
+
++ for i in $TMPDIR $SERIAL_DIR
+
++ test -d /harness-qq032OiMR9SAGhM1dXMY1A/tmpdir
+
++ for i in $TMPDIR $SERIAL_DIR
+
++ test -d /harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/serial
+
++ mkdir -p /harness-qq032OiMR9SAGhM1dXMY1A/packer_cache/serial
+
++ packer --version
+
+0 0
+
++ ansible-playbook --version
+
+ansible-playbook [core 2.16.3]
+
+  config file = /harness-qq032OiMR9SAGhM1dXMY1A/ansible.cfg
+
+  configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+
+  ansible python module location = /usr/lib/python3.12/site-packages/ansible
+
+  ansible collection location = /root/.ansible/collections:/usr/share/ansible/collections
+
+  executable location = /usr/bin/ansible-playbook
+
+  python version = 3.12.13 (main, Apr 16 2026, 22:51:04) [GCC 8.5.0 20210514 (Red Hat 8.5.0-28)] (/usr/bin/python3.12)
+
+  jinja version = 3.1.2
+
+  libyaml = True
+
++ ansible-vault --version
+
+ansible-vault [core 2.16.3]
+
+  config file = /harness-qq032OiMR9SAGhM1dXMY1A/ansible.cfg
+
+  configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+
+  ansible python module location = /usr/lib/python3.12/site-packages/ansible
+
+  ansible collection location = /root/.ansible/collections:/usr/share/ansible/collections
+
+  executable location = /usr/bin/ansible-vault
+
+  python version = 3.12.13 (main, Apr 16 2026, 22:51:04) [GCC 8.5.0 20210514 (Red Hat 8.5.0-28)] (/usr/bin/python3.12)
+
+  jinja version = 3.1.2
+
+  libyaml = True
+
++ virt-sysprep --version
+
+virt-sysprep 1.44.0rhel=8,release=9.module+el8.9.0+18724+20190c23,libvirt
+
++ virt-customize --version
+
+virt-customize 1.44.0rhel=8,release=9.module+el8.9.0+18724+20190c23,libvirt
+
++ jfrog --version
+
+jf version 2.109.0
+
++ xmllint --version
+
+xmllint: using libxml version 20907
+
+   compiled with: Threads Tree Output Push Reader Patterns Writer SAXv1 FTP HTTP DTDValid HTML Legacy C14N Catalog XPath XPointer XInclude Iconv ISO8859X Unicode Regexps Automata Expr Schemas Schematron Modules Debug Zlib Lzma 
+
++ jq --version
+
+jq-1.6
+
++ which ssh-keygen
+
++ alias
+
++ eval declare -f
+
+++ declare -f
+
++ /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot ssh-keygen
+
+/usr/bin/ssh-keygen
+
++ which bc
+
++ alias
+
++ eval declare -f
+
+++ declare -f
+
++ /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot bc
+
+/usr/bin/bc
+
++ which grub2-mkpasswd-pbkdf2
+
++ alias
+
++ eval declare -f
+
+++ declare -f
+
++ /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot grub2-mkpasswd-pbkdf2
+
+/usr/bin/grub2-mkpasswd-pbkdf2
+
++ packer validate '-only=prep*' -var-file=os-debian.pkvars.hcl -var-file=debian_artifact.pkvars.json .
+
+0 0
+
++ mapfile -t PC_OUTPUT
+
+++ packer console -var-file os-debian.pkvars.hcl .
+
+++ jq -r '.[]'
+
+jq: error (at &lt;stdin>:1): Cannot iterate over number (1)
+
+jq: error (at &lt;stdin>:1): Cannot iterate over number (1)
+
++ mkdir -p prep
+
++ packer validate '-only=post*' -var-file=os-debian.pkvars.hcl -var-file=debian_artifact.pkvars.json .
+
+0 0
+
++ rm -rf prep
+
+
+prep.sh
+0 0
+
++ packer build '-only=prep*' -var-file=os-debian.pkvars.hcl -var-file=debian_artifact.pkvars.json .
+
+0 0
+
+
+
+
