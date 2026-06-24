@@ -1,0 +1,8 @@
+CODEOWNERS.destination_branch_pattern main
+
+@@@admins @mdekoke @afiguer @knandik @apogaru
+* @@admins
+Jenkinsfile @@admins
+CODEOWNERS @@admins
+
+Check(@@admins >= 1)

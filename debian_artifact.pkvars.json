@@ -1,0 +1,13 @@
+{
+  "artifact": {
+    "binary": "/usr/bin/jfrog",
+    "source": "post",
+    "target": "storage-local/ifa/packer-qemu-builds",
+    "url": "https://artifed.transunion.com/artifactory",
+    "name": "IFA::CloudImage::Linux::debian",
+    "env_exclude": null,
+    "target_props": "os=debian",
+    "server_id": "jfrog_default"
+  },
+  "default_tags": {}
+}
