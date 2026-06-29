@@ -1,0 +1,20 @@
+In debian12.yml
+--- 
+setup_apt_repo_params:
+  - name: debian12_main
+    uris: "https://deb.debian.org/debian"
+    suites: bookworm
+    components: main contrib non-free non-free-firmware
+    enabled: true
+
+  - name: debian12_security
+    uris: "https://security.debian.org/debian-security"
+    suites: bookworm-security
+    components: main contrib non-free non-free-firmware
+    enabled: true
+
+  - name: debian12_updates
+    uris: "https://deb.debian.org/debian"
+    suites: bookworm-updates
+    components: main contrib non-free non-free-firmware
+    enabled: true
