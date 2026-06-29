@@ -18,3 +18,190 @@ setup_apt_repo_params:
     suites: bookworm-updates
     components: main contrib non-free non-free-firmware
     enabled: true
+
+
+
+In .env
+#!/usr/bin/env bash
+
+export GCP_PROJECT="odev-eiaas-dev-vmi-archv-b9ba"
+export GCP_CREDENTIALS_FILE="/tmp/gcp-creds.json"
+export GCP_ZONE="us-central1-a"
+export GCS_BUCKET="goldenimages"
+export WORKSPACE="$PWD"
+export PACKER_SSH_KEYS="${WORKSPACE}/ssh-keys"
+
+
+In variables.pkr.hcl
+variable "build_number" {
+  type    = string
+  default = "0"
+}
+
+variable "pwd" {
+  type    = string
+  default = env("PWD")
+}
+
+variable "gcp_project_id" {
+  type    = string
+  default = env("GCP_PROJECT_ID")
+}
+
+variable "gcp_credentials_file" {
+  type    = string
+  default = "/tmp/gcp-creds.json"
+}
+
+variable "gcp_zone" {
+  type    = string
+  default = "us-central1-a"
+}
+
+variable "gcs_bucket" {
+  type    = string
+  default = "goldenimages"
+}
+
+variable "ssh_public_key" {
+  type    = string
+  default = env("PACKER_SSH_PUBLIC_KEY")
+}
+
+variable "post" {
+  type = list(object({
+    name   = string
+    target = string
+    groups = list(string)
+  }))
+  default = []
+}
+
+
+In gcp-builds.pkr.hcl
+packer {
+  required_version = ">= 1.11.0"
+  required_plugins {
+    googlecompute = {
+      version = ">= 1.1.0"
+      source  = "github.com/hashicorp/googlecompute"
+    }
+    ansible = {
+      version = ">= 1.1.2"
+      source  = "github.com/hashicorp/ansible"
+    }
+  }
+}
+
+locals {
+  build_time     = "${formatdate("YYYYMMDD", timestamp())}.${var.build_number}"
+  gcp_image_name = "debian12-hardened-${formatdate("YYYYMMDD", timestamp())}-${var.build_number}"
+}
+
+build {
+  name = "post"
+
+  dynamic "source" {
+    for_each = { for idx, src in var.post : "${src.name}@${idx}" => src }
+    iterator = it
+    labels   = ["googlecompute.debian12"]
+    content {
+      name = "${it.value.name}@${it.value.target}"
+    }
+  }
+
+  provisioner "ansible" {
+    user          = "debian"
+    playbook_file = "ansible/playbooks/build.yml"
+    timeout       = "2h"
+    use_proxy     = false
+
+    roles_path       = "packer_cache/ansible/roles/${source.name}"
+    collections_path = "packer_cache/ansible/collections/${source.name}"
+
+    galaxy_force_install = true
+    galaxy_file          = fileexists("ansible/requirements.yml") ? "ansible/requirements.yml" : null
+
+    ansible_env_vars = [
+      "ANSIBLE_ROLES_PATH=${var.pwd}/packer_cache/ansible/roles/${source.name}",
+      "ANSIBLE_COLLECTIONS_PATH=~/.ansible/collections:/usr/share/ansible/collections:${var.pwd}/packer_cache/ansible/collections/${source.name}"
+    ]
+
+    groups = flatten([
+      [
+        split("@", source.name)[0],
+        split("@", source.name)[1],
+        source.type,
+      ],
+      {
+        for i in var.post :
+        "${i.name}@${i.target}" => lookup(i, "groups", [])
+      }[source.name]
+    ])
+
+    extra_arguments = [
+      "--ssh-extra-args",
+      "-o IdentitiesOnly=yes -o IdentityFile=''",
+      "--ssh-extra-args",
+      "-F /dev/null",
+      "--extra-vars",
+      "min_ansible_version=2.13.0",
+      "--become",
+      "--become-user=root"
+    ]
+  }
+
+  # Export GCP image as RAW tar.gz to GCS bucket
+  post-processor "shell-local" {
+    environment_vars = [
+      "BUILD_TIME=${local.build_time}",
+      "GCP_PROJECT_ID=${var.gcp_project_id}",
+      "GCS_BUCKET=${var.gcs_bucket}"
+    ]
+    command = <<-CMD
+      bin/export-from-gcp.sh \
+        "${local.gcp_image_name}" \
+        "post/${source.name}.tar.gz"
+    CMD
+  }
+
+  # Generate packer manifest
+  post-processor "manifest" {
+    output     = "packer_cache/packer-manifest.json"
+    strip_path = true
+    strip_time = false
+  }
+}
+
+In export-from-gcp.sh
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+IMAGE_NAME="$1"
+DEST_PATH="$2"
+
+if [[ -z "$IMAGE_NAME" || -z "$DEST_PATH" ]]; then
+  echo "Usage: $0 <image-name> <dest-path>"
+  exit 1
+fi
+
+if [[ -z "$GCP_PROJECT_ID" ]]; then
+  echo "GCP_PROJECT_ID is not set!"
+  exit 1
+fi
+
+if [[ -z "$GCS_BUCKET" ]]; then
+  echo "GCS_BUCKET is not set!"
+  exit 1
+fi
+
+echo "Exporting GCE image: $IMAGE_NAME to gs://${GCS_BUCKET}/${DEST_PATH}"
+
+gcloud compute images export \
+  --project="$GCP_PROJECT_ID" \
+  --image="$IMAGE_NAME" \
+  --export-format=gcs \
+  --destination-uri="gs://${GCS_BUCKET}/${DEST_PATH}" \
+  --quiet
+
+echo "Export complete: gs://${GCS_BUCKET}/${DEST_PATH}"
